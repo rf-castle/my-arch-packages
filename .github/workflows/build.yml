@@ -5,6 +5,9 @@ on:
 jobs:
   pre-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     outputs:
       packages: ${{ steps.get-packages.outputs.packages }}
     steps:
@@ -41,6 +44,5 @@ jobs:
       - name: Build Package
         run: |
           chown -R builder .
-          chmod +x ./build.sh
           sudo -u builder -- paru -B --noconfirm .
         working-directory: ./source/${{ matrix.dir }}
