@@ -52,8 +52,7 @@ jobs:
       - name: Build Package
         run: |
           chown -R builder:builder .
-          ls -al
+          sudo -u builder -- git submodule update --init source/${{ matrix.dir }}
           pushd ./source/${{ matrix.dir }}
-          sudo -u builder -- git submodule update --remote ./source/${{ matrix.dir }}
           sudo -u builder -- paru -B --noconfirm .
           popd
