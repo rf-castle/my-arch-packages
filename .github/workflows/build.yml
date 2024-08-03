@@ -1,0 +1,33 @@
+on:
+  push: 
+    branches: [ main ]
+  workflow_dispatch: {}
+jobs:
+  pre-build:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.get-packages.outputs.dirs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: List Package
+        id: get-packages
+        run: |
+          cd source
+          dirs=$(find . -maxdepth 1 -type d | sed 's|^\./||' | grep -v '^\.git$' | jq -R . | jq -s .)
+          echo "::set-output name=dirs::$dirs"
+  build:
+    runs-on: ubuntu-latest
+    needs: pre-build
+    strategy:
+      matrix:
+        dir: ${{ fromJson(needs.pre-build.outputs.packages) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set Up Arch Linux
+        uses: docker://archlinux
+        with:
+          entrypoint: /bin/bash
+          args: build.sh ${{ matrix.dir }}
+          working-directory: ./source

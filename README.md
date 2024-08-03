@@ -1,2 +1,2 @@
-# arch-packages
-Arch Linux用のパッケージビルドCI + 置き場
+# my-arch-packages
+自分用Arch Linux用のパッケージビルドCI + 置き場
