@@ -1,3 +1,4 @@
+name: Build Packages
 on:
   push: 
     branches: [ main ]
