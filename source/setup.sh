@@ -12,5 +12,5 @@ pacman -S --noconfirm --needed base-devel git
 # ビルド用ユーザーの作成
 useradd -m -G wheel -s /bin/bash builder
 echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-chown -R builder /github/workspace
+chown -R builder .
 

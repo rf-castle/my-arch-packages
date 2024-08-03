@@ -27,10 +27,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set Up Arch Linux
+      - name: Update Packages and Create User
         run: |
           chmod +x ./setup.sh
           ./setup.sh
+        working-directory: ./source
+      - name: Build Package
+        run: |
           chmod +x ./build.sh
           sudo -u builder -- ./build.sh ${{ matrix.dir }}
         working-directory: ./source
