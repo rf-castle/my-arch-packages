@@ -18,6 +18,8 @@ jobs:
           echo "packages=$packages" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
+    container:
+      image: docker://archlinux
     needs: pre-build
     strategy:
       matrix:
@@ -26,8 +28,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Set Up Arch Linux
-        uses: docker://archlinux
-        with:
-          entrypoint: /bin/bash
-          args: build.sh ${{ matrix.dir }}
-          working-directory: ./source
+        run: |
+          ./build.sh ${{ matrix.dir }}
+        working-directory: ./source
