@@ -10,17 +10,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      # - name: Build Docker image
-      #   run: |
-      #     docker build -t myarchlinux:latest ./source
-      # - name: Save Docker image to file
-      #   run: |
-      #     docker save myarchlinux:latest | gzip > myarchlinux.tar.gz
-      # - name: Upload Docker image artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: myarchlinux
-      #     path: myarchlinux.tar.gz
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/myarchlinux:latest
+          docker push ghcr.io/${{ github.repository }}/myarchlinux:latest
+        working-directory: ./source
       - name: List Package
         id: get-packages
         run: |
@@ -29,23 +29,18 @@ jobs:
           echo "packages=$packages" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
-    container:
-      image: docker://archlinux:base-devel
     needs: pre-build
+    container:
+      image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     strategy:
       matrix:
         dir: ${{ fromJson(needs.pre-build.outputs.packages) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Update Packages and Create User
-        run: |
-          echo $PWD
-          chmod +x ./setup.sh
-          ./setup.sh
-        working-directory: ./source
       - name: Build Package
         run: |
+          chown -R builder .
           chmod +x ./build.sh
-          sudo -u builder -- ./build.sh ${{ matrix.dir }}
-        working-directory: ./source
+          sudo -u builder -- paru -B --noconfirm .
+        working-directory: ./source/${{ matrix.dir }}
