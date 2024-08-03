@@ -54,6 +54,6 @@ jobs:
           chown -R builder:builder .
           ls -al
           pushd ./source/${{ matrix.dir }}
-          git submodule update --remote .
+          sudo -u builder -- git submodule update --remote .
           sudo -u builder -- paru -B --noconfirm .
           popd
