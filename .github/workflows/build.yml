@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: docker://archlinux
+      image: docker://archlinux:base-devel
     needs: pre-build
     strategy:
       matrix:
@@ -29,6 +29,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Set Up Arch Linux
         run: |
+          chmod +x ./setup.sh
+          ./setup.sh
           chmod +x ./build.sh
-          ./build.sh ${{ matrix.dir }}
+          sudo -u builder -- ./build.sh ${{ matrix.dir }}
         working-directory: ./source

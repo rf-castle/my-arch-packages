@@ -4,11 +4,7 @@
 # スクリプトをエラーで停止させる
 set -e
 
-# パッケージアップデートとビルドツールのインストール
-pacman -Syu --noconfirm
-pacman -S --noconfirm base-devel git
-
-# paruのインストール
+# paruのインストール(依存パッケージを持ってきながらビルドするため用)
 # Todo: 毎回インストールするのは非効率なので、どっかから持ってくる
 git clone https://aur.archlinux.org/paru.git
 cd paru
