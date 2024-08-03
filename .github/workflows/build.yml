@@ -29,5 +29,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Set Up Arch Linux
         run: |
+          chmod +x ./build.sh
           ./build.sh ${{ matrix.dir }}
         working-directory: ./source
