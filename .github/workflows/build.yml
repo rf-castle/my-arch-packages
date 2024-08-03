@@ -51,7 +51,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Build Package
         run: |
-          git submodule update --remote .
           chown -R builder .
+          ls -al
+          pushd ./source/${{ matrix.dir }}
+          git submodule update --remote .
           sudo -u builder -- paru -B --noconfirm .
-        working-directory: ./source/${{ matrix.dir }}
+          popd
