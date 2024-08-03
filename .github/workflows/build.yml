@@ -31,7 +31,7 @@ jobs:
           tags: "ghcr.io/${{ github.repository }}/myarchlinux:latest"
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
+          pull: true
       - name: List Package
         id: get-packages
         run: |
@@ -45,14 +45,14 @@ jobs:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     strategy:
       matrix:
-        dir: ${{ fromJson(needs.pre-build.outputs.packages) }}
+        package: ${{ fromJson(needs.pre-build.outputs.packages) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Build Package
         run: |
           chown -R builder:builder .
-          sudo -u builder -- git submodule update --init source/${{ matrix.dir }}
-          pushd ./source/${{ matrix.dir }}
+          sudo -u builder -- git submodule update --init source/${{ matrix.package }}
+          pushd ./source/${{ matrix.package }}
           sudo -u builder -- paru -B --noconfirm .
           popd
