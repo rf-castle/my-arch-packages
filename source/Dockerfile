@@ -6,4 +6,4 @@ FROM archlinux:base-devel
 WORKDIR /opt
 COPY setup.sh .
 
-RUN ./setup.sh
+RUN chmod +x ./setup.sh && ./setup.sh
