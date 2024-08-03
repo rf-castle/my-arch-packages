@@ -21,7 +21,7 @@ jobs:
     needs: pre-build
     strategy:
       matrix:
-        dir: ${{ fromJson(needs.pre-build.outputs.packages) }}
+        dir: ${{ needs.pre-build.outputs.packages }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
