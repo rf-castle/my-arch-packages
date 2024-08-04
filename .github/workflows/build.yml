@@ -49,15 +49,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set Package Path
+        run: |
+          echo "PACKAGE_PATH=source/${{ matrix.package }}" > $GITHUB_ENV
       - name: Build Package
         run: |
           chown -R builder:builder .
-          sudo -u builder -- git submodule update --init source/${{ matrix.package }}
-          cd ./source/${{ matrix.package }}
+          sudo -u builder -- git submodule update --init $PACKAGE_PATH
+          cd $PACKAGE_PATH
           sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist
       - name: upload package
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.package }}
-          path: ./source/${{ matrix.package }}/dist/*.pkg.tar.zst
+          path: $PACKAGE_PATH/dist/*.pkg.tar.zst
