@@ -60,4 +60,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.package }}
-          path: ./dist/*.pkg.tar.zst
+          path: ./source/${{ matrix.package }}/dist/*.pkg.tar.zst
