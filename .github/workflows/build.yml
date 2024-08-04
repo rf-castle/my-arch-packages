@@ -54,6 +54,6 @@ jobs:
           chown -R builder:builder .
           sudo -u builder -- git submodule update --init source/${{ matrix.package }}
           pushd ./source/${{ matrix.package }}
-          sudo -u builder -- PKGDEST=$PWD/dist paru -B --noconfirm .
+          sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist
           popd
