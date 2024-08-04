@@ -53,7 +53,11 @@ jobs:
         run: |
           chown -R builder:builder .
           sudo -u builder -- git submodule update --init source/${{ matrix.package }}
-          pushd ./source/${{ matrix.package }}
+          cd ./source/${{ matrix.package }}
           sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist
-          popd
+      - name: upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}
+          path: ./dist/*.pkg.tar.zst
