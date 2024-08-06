@@ -64,3 +64,17 @@ jobs:
         with:
           name: ${{ matrix.package }}
           path: $PACKAGE_PATH/dist/*.pkg.tar.zst
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ github.event.repository.name }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
