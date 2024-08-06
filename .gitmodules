@@ -1,6 +1,3 @@
 [submodule "source/discord-ptb"]
 	path = source/discord-ptb
 	url = https://aur.archlinux.org/discord-ptb
-[submodule "source/linux-zen-alderlake"]
-	path = source/linux-zen-alderlake
-	url = https://gitlab.archlinux.org/archlinux/packaging/packages/linux-zen.git
