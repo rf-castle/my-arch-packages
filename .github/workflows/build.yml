@@ -80,13 +80,14 @@ jobs:
       - name: Download Package
         uses: actions/download-artifact@v4
         with:
-          name: package-*
-          path: repo/parrot
+          pattern: package-*
+          path: "."
           merge-multiple: true
       - name: Push Package
         run: |
-          cd repo/parrot
           repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
-          git add .
+          git switch -c repo
+          git rm -r --cached .
+          git add parrot.db.* *.pkg.tar.zst
           git commit -m "Add new packages"
           git push
