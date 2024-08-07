@@ -92,7 +92,6 @@ jobs:
           git config --global --add safe.directory $PWD
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git switch -c repo
           git add parrot.db.* *.pkg.tar.zst
           git commit -m "Add new packages"
           git push
