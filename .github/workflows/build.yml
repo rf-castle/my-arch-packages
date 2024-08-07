@@ -62,6 +62,7 @@ jobs:
           popd
       - name: Push Package
         run: |
+          mkdir -p repo/parrot
           mv $PACKAGE_PATH/dist/*.pkg.tar.zst repo/parrot
           git add repo/parrot
           git commit -m "Add ${{ matrix.package }}"
