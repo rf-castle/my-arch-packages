@@ -73,7 +73,7 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - name: Checkout code
