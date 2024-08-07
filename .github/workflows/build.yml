@@ -86,8 +86,10 @@ jobs:
       - name: Push Package
         run: |
           repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
-          git switch -c repo
-          git rm -r --cached .
-          git add parrot.db.* *.pkg.tar.zst
-          git commit -m "Add new packages"
-          git push
+          sudo -u builder -- bash -c '
+            git switch -c repo
+            git rm -r --cached .
+            git add parrot.db.* *.pkg.tar.zst
+            git commit -m "Add new packages"
+            git push
+          '
