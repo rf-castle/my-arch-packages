@@ -55,7 +55,8 @@ jobs:
       - name: Build Package
         run: |
           chown -R builder:builder .
-          sudo -u builder -- git submodule update --init $PACKAGE_PATH
+          git config --global --add safe.directory $PWD
+          git submodule update --init $PACKAGE_PATH
           pushd $PACKAGE_PATH
           sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist
@@ -86,10 +87,9 @@ jobs:
       - name: Push Package
         run: |
           repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
-          sudo -u builder -- bash -c '
-            git switch -c repo
-            git rm -r --cached .
-            git add parrot.db.* *.pkg.tar.zst
-            git commit -m "Add new packages"
-            git push
-          '
+          git config --global --add safe.directory $PWD
+          git switch -c repo
+          git rm -r --cached .
+          git add parrot.db.* *.pkg.tar.zst
+          git commit -m "Add new packages"
+          git push
