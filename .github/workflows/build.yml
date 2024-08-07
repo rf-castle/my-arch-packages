@@ -80,6 +80,7 @@ jobs:
           path: packages
       - name: Unzip Artifact
         run: |
+          ls -l packages
           for file in packages/package-*.zip; do
             unzip $file
           done
