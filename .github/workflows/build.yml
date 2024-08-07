@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Set Package Path
         run: |
-          echo "PACKAGE_PATH=source/${{ matrix.package }}" > $GITHUB_ENV
+          echo "PACKAGE_PATH=source/${{ matrix.package }}" >> $GITHUB_ENV
       - name: Build Package
         run: |
           chown -R builder:builder .
@@ -63,7 +63,7 @@ jobs:
       - name: upload package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.package }}
+          name: package-${{ matrix.package }}
           path: ${{ env.PACKAGE_PATH }}/dist/*.pkg.tar.zst
   deploy:
     runs-on: ubuntu-latest
@@ -74,6 +74,9 @@ jobs:
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v4
+        with:
+          pattern: package-*  # Download all packages
+          merge-multiple: true
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
