@@ -77,6 +77,18 @@ jobs:
         with:
           pattern: package-*  # Download all packages
           merge-multiple: true
+          path: packages
+      - name: Unzip Artifact
+        run: |
+          for file in packages/package-*.zip; do
+            unzip $file
+          done
+          rm -r packages
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: .
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
