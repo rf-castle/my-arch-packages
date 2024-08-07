@@ -67,7 +67,9 @@ jobs:
           path: ${{ env.PACKAGE_PATH }}/dist/*.pkg.tar.zst
   deploy:
     runs-on: ubuntu-latest
-    needs: [pre-build, build]
+    needs: build
+    container:
+      image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     permissions:
       pages: write      # to deploy to Pages
       id-token: write   # to verify the deployment originates from an appropriate source
@@ -77,19 +79,15 @@ jobs:
         with:
           pattern: package-*  # Download all packages
           merge-multiple: true
-          path: packages
-      - name: Unzip Artifact
+          path: "."
+      - name: Update Package Database
         run: |
-          ls -l packages
-          for file in packages/package-*.zip; do
-            unzip $file
-          done
-          rm -r packages
+          repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: github-pages
-          path: .
+          path: "."
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
