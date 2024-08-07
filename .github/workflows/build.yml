@@ -78,6 +78,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: repo
       - name: Download Package
         uses: actions/download-artifact@v4
         with:
@@ -88,8 +90,9 @@ jobs:
         run: |
           repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
           git config --global --add safe.directory $PWD
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git switch -c repo
-          git rm -r --cached .
           git add parrot.db.* *.pkg.tar.zst
           git commit -m "Add new packages"
           git push
