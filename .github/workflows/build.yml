@@ -50,7 +50,7 @@ jobs:
           echo "packages=$packages" >> $GITHUB_OUTPUT
       - name: Extract Paru From Image
         run: |
-          docker run --rm --name extract-paru -d ghcr.io/${{ github.repository }}/myarchlinux:latest
+          docker run --name extract-paru -d ghcr.io/${{ github.repository }}/myarchlinux:latest
           docker cp extract-paru:/opt/dist/ .
           docker rm -f extract-paru
       - name: Upload Paru
