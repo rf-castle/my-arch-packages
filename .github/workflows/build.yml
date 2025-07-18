@@ -60,7 +60,9 @@ jobs:
           path: /opt/dist/*
   build:
     runs-on: ubuntu-latest
-    needs: pre-build
+    needs:
+      - pre-build
+      - update-packages
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     strategy:
