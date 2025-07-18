@@ -72,11 +72,20 @@ jobs:
       - name: Set Package Path
         run: |
           echo "PACKAGE_PATH=source/${{ matrix.package }}" >> $GITHUB_ENV
-      - name: Build Package
+      - name: Update Permissions
         run: |
           chown -R builder:builder .
+      - name: Update Submodules
+        run: |
           git config --global --add safe.directory $PWD
           git submodule update --init $PACKAGE_PATH
+      - name: Run Scripts when exists
+        run: |
+          if [ -f ./scripts/${{ matrix.package }}.sh ]; then
+            bash ./scripts/${{ matrix.package }}.sh
+          fi
+      - name: Build Package
+        run: |
           pushd $PACKAGE_PATH
           sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist
