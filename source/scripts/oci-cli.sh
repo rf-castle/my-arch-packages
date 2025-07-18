@@ -5,4 +5,4 @@
 set -e
 
 # パッケージのアップデート
-pacman -S --noconfirm python-terminaltables3
+sudo -u builder -- paru -S --noconfirm python-terminaltables3
