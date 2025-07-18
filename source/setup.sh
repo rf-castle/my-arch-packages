@@ -17,5 +17,6 @@ git clone https://aur.archlinux.org/paru.git
 chown -R builder:builder paru
 pushd paru
 sudo -u builder -- makepkg -isr --noconfirm
+sudo -u builder -- mv paru-*.pkg.tar.zst ../
 popd
 rm -rf paru
