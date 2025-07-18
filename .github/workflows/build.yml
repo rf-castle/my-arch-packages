@@ -81,9 +81,11 @@ jobs:
           git submodule update --init $PACKAGE_PATH
       - name: Run Scripts when exists
         run: |
+          pushd source
           if [ -f ./scripts/${{ matrix.package }}.sh ]; then
             bash ./scripts/${{ matrix.package }}.sh
           fi
+          popd
       - name: Build Package
         run: |
           pushd $PACKAGE_PATH
