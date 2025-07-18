@@ -46,7 +46,7 @@ jobs:
         id: get-packages
         run: |
           cd source
-          packages=$(find . -maxdepth 1 -type d | sed 's|^\./||' | grep -v '^\.' | jq -R . | jq -cs .)
+          packages=$(find . -maxdepth 1 -type d | sed 's|^\./||' | grep -v '^\.' | grep -v '^scripts$' | jq -R . | jq -cs .)
           echo "packages=$packages" >> $GITHUB_OUTPUT
       - name: Extract Paru From Image
         run: |
