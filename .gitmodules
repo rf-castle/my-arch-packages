@@ -1,6 +1,3 @@
-[submodule "source/discord-ptb"]
-	path = source/discord-ptb
-	url = https://aur.archlinux.org/discord-ptb
 [submodule "source/oci-cli"]
 	path = source/oci-cli
 	url = https://aur.archlinux.org/oci-cli
