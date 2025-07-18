@@ -15,8 +15,9 @@ echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # paruのインストール(依存パッケージを持ってきながらビルドするため用)
 git clone https://aur.archlinux.org/paru.git
 chown -R builder:builder paru
+mkdir dist
 pushd paru
 sudo -u builder -- makepkg -isr --noconfirm
-mv paru-*.pkg.tar.zst ../
+mv paru-*.pkg.tar.zst ../dist/
 popd
 rm -rf paru
