@@ -86,10 +86,6 @@ jobs:
             if [[ "$dir" == "scripts" || "$dir" == .* ]]; then
               continue
             fi
-            # PKGBUILDがなければスキップ
-            if [[ ! -f "$dir/PKGBUILD" ]]; then
-              continue
-            fi
             # localバージョン取得
             local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
             pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
