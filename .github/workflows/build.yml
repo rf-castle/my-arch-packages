@@ -24,7 +24,6 @@ jobs:
           git submodule foreach --recursive git pull origin master
           (git commit -m "Update submodules" && git push origin main ) || echo "No changes to commit"
   pre-build:
-    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,7 +61,7 @@ jobs:
   list-package:
     runs-on: ubuntu-latest
     needs:
-      # - pre-build
+      - pre-build
       - update-packages
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
