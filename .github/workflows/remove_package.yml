@@ -32,7 +32,7 @@ jobs:
         run: |
           pacman -Sy --noconfirm
           pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}' | grep -v "${{ github.event.inputs.package_name }}")
-          pacman -Sw --noconfirm --nodeps $pkgs --cachedir=$PWD
+          pacman -Swdd --noconfirm $pkgs --cachedir=$PWD
       - name: Download Build Package
         uses: actions/download-artifact@v4
         with:

@@ -175,7 +175,7 @@ jobs:
           echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
           pacman -Sy --noconfirm
           pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
-          pacman -Sw --noconfirm --nodeps $pkgs --cachedir=$PWD
+          pacman -Swdd --noconfirm --nodeps $pkgs --cachedir=$PWD
       - name: Download Build Package
         uses: actions/download-artifact@v4
         with:
