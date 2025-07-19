@@ -1,0 +1,46 @@
+name: remove_package.yml
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: 'Name of the package to remove'
+        required: true
+
+jobs:
+  remove_package:
+    name: Remove Package
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/myarchlinux:latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5.0.0
+      - name: Edit pacman.conf
+        run: |
+          echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
+      - name: Download Exists Packages
+        # Todo: 署名検証を追加
+        run: |
+          pacman -Sy --noconfirm
+          pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}' | grep -v "${{ github.event.inputs.package_name }}")
+          pacman -Sw --noconfirm $pkgs --cachedir=$PWD
+      - name: Download Build Package
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: "."
+          merge-multiple: true
+      - name: Create Repository
+        run: |
+          repo-add -n -R ${{ env.REPOSITORY_NAME }}.db.tar.gz *.pkg.tar.zst
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3.0.1
+        with:
+          # Upload entire repository
+          path: '.'
+      - name: Upload With Github Pages
+        uses: actions/deploy-pages@v4.0.5
