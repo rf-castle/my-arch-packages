@@ -4,3 +4,6 @@
 [submodule "source/plasma-workspace"]
 	path = source/plasma-workspace
 	url = https://gitlab.archlinux.org/archlinux/packaging/packages/plasma-workspace.git
+[submodule "source/python-terminaltables3"]
+	path = source/python-terminaltables3
+	url = https://aur.archlinux.org/python-terminaltables3.git
