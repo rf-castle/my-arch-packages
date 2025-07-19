@@ -71,18 +71,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Download remote repo db
+      - name: Setup pacman remote repo
         run: |
-          mkdir -p /tmp/remote_repo
-          curl -sSL "${{ env.REPOSITORY_URL }}/${{ env.REPOSITORY_NAME }}.db.tar.gz" -o /tmp/remote_repo/repo.db.tar.gz || true
-          # ファイルサイズ0や展開失敗時は削除
-          if [ ! -s /tmp/remote_repo/repo.db.tar.gz ]; then
-            rm -f /tmp/remote_repo/repo.db.tar.gz
-          elif ! tar -tzf /tmp/remote_repo/repo.db.tar.gz >/dev/null 2>&1; then
-            rm -f /tmp/remote_repo/repo.db.tar.gz
-          else
-            tar -xzf /tmp/remote_repo/repo.db.tar.gz -C /tmp/remote_repo
-          fi
+          echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
+          pacman -Sy --noconfirm
       - name: Get Packages to Build
         id: get-packages
         run: |
@@ -102,10 +94,9 @@ jobs:
             local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
             pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
             remote_ver=""
-            # リモートリポジトリからバージョン取得
-            desc_path="/tmp/remote_repo/${pkgname}/desc"
-            if [[ -f "$desc_path" ]]; then
-              remote_ver=$(awk '/%VERSION%/{getline; print}' "$desc_path")
+            # pacmanからリモートバージョン取得
+            if pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname &>/dev/null; then
+              remote_ver=$(pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname | awk -F': ' '/^Version/ {print $2}')
             fi
             # リモートリポジトリに存在しない or バージョンが異なる場合のみ追加
             if [[ "$local_ver" != "$remote_ver" ]]; then
