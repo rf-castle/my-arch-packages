@@ -73,8 +73,13 @@ jobs:
       - name: Download remote repo db
         run: |
           mkdir -p /tmp/remote_repo
-          curl -sSL "$REPOSITORY_URL/${{ env.REPOSITORY_NAME }}.db.tar.gz" -o /tmp/remote_repo/repo.db.tar.gz || true
-          if [ -f /tmp/remote_repo/repo.db.tar.gz ]; then
+          curl -sSL "${{ env.REPOSITORY_URL }}/${{ env.REPOSITORY_NAME }}.db.tar.gz" -o /tmp/remote_repo/repo.db.tar.gz || true
+          # ファイルサイズ0や展開失敗時は削除
+          if [ ! -s /tmp/remote_repo/repo.db.tar.gz ]; then
+            rm -f /tmp/remote_repo/repo.db.tar.gz
+          elif ! tar -tzf /tmp/remote_repo/repo.db.tar.gz >/dev/null 2>&1; then
+            rm -f /tmp/remote_repo/repo.db.tar.gz
+          else
             tar -xzf /tmp/remote_repo/repo.db.tar.gz -C /tmp/remote_repo
           fi
       - name: Get Packages to Build
@@ -82,7 +87,6 @@ jobs:
         run: |
           cd source
           packages=()
-          repo_name="parrot"
           for dir in */ ; do
             dir=${dir%/}
             # scriptsや隠しディレクトリは除外
@@ -170,7 +174,7 @@ jobs:
           merge-multiple: true
       - name: Create Repository
         run: |
-          repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
+          repo-add -n -R ${{ env.REPOSITORY_NAME }}.db.tar.gz *.pkg.tar.zst
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.1
         with:
