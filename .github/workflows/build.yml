@@ -174,6 +174,7 @@ jobs:
       - name: Download Exists Packages
         run: |
           echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\n" >> /etc/pacman.conf
+          pacman -Sy --noconfirm
           pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
           pacman -Sw --noconfirm $pkgs --cachedir=$PWD
       - name: Download Build Package
