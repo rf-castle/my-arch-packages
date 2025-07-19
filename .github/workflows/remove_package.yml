@@ -1,4 +1,4 @@
-name: remove_package.yml
+name: Remove Package
 on:
   workflow_dispatch:
     inputs:
