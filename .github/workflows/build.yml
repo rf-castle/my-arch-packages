@@ -157,7 +157,10 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs:
+      - build
+      - list-package
+    if: always() && needs.list-package.result == 'success'
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     permissions:
