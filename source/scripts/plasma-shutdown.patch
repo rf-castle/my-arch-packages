@@ -1,0 +1,19 @@
+diff --git a/startkde/plasma-shutdown/shutdown.cpp b/startkde/plasma-shutdown/shutdown.cpp
+index 11c002bcd8..800041f8f2 100644
+--- a/startkde/plasma-shutdown/shutdown.cpp
++++ b/startkde/plasma-shutdown/shutdown.cpp
+@@ -100,13 +100,7 @@ void Shutdown::ksmServerComplete()
+         watcher->deleteLater();
+         OrgKdeKSMServerInterfaceInterface ksmserverIface(QStringLiteral("org.kde.ksmserver"), QStringLiteral("/KSMServer"), QDBusConnection::sessionBus());
+         auto reply = QDBusReply<bool>(*watcher);
+-        if (!reply.isValid()) {
+-            qCWarning(PLASMA_SESSION) << "KWin failed to complete logout";
+-            ksmserverIface.resetLogout();
+-            logoutCancelled();
+-            return;
+-        }
+-        if (reply.value()) {
++        if (reply.value() || !reply.isValid() ) {
+             logoutComplete();
+         } else {
+             ksmserverIface.resetLogout();
