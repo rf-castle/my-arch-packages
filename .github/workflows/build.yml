@@ -115,7 +115,7 @@ jobs:
       - list-package
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
-    if: ${{ fromJSON(needs.list-package.outputs.packages).length > 0 }}
+    if: ${{ needs.list-package.outputs.packages != '[]' }}
     strategy:
       matrix:
         package: ${{ fromJSON(needs.list-package.outputs.packages) }}
