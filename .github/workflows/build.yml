@@ -71,6 +71,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Update Submodules
+        run: |
+          git config --global --add safe.directory $PWD
+          git submodule update --init --recursive
       - name: Setup pacman remote repo
         run: |
           echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
@@ -84,6 +88,10 @@ jobs:
             dir=${dir%/}
             # scriptsや隠しディレクトリは除外
             if [[ "$dir" == "scripts" || "$dir" == .* ]]; then
+              continue
+            fi
+            # PKGBUILDがなければスキップ
+            if [[ ! -f "$dir/PKGBUILD" ]]; then
               continue
             fi
             # localバージョン取得
