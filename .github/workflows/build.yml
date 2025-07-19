@@ -106,26 +106,18 @@ jobs:
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
     permissions:
-      contents: write
-      packages: write
+      contents: read
+      pages: write
+      id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: repo
       - name: Download Package
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
           path: "."
           merge-multiple: true
-      - name: Push Package
+      - name: Create Repository
         run: |
           repo-add -n -R parrot.db.tar.gz *.pkg.tar.zst
-          ls -l
-          git config --global --add safe.directory $PWD
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add parrot* *.pkg.tar.zst
-          git commit -m "Add new packages"
-          git push
+      - name: Upload With Github Pages
+        uses: actions/deploy-pages@v4.0.5
