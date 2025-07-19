@@ -171,20 +171,17 @@ jobs:
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v5.0.0
-      - name: Download Package
+      - name: Download Exists Packages
+        run: |
+          echo "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\n" >> /etc/pacman.conf
+          pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
+          pacman -Sw --noconfirm $pkgs --cachedir=$PWD
+      - name: Download Build Package
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
           path: "."
           merge-multiple: true
-      - name: Download All Packages
-        run: |
-          # リモートリポジトリから全てのパッケージをダウンロード
-          curl -sSL "${{ env.REPOSITORY_URL }}/${{ env.REPOSITORY_NAME }}.files" | while read -r file; do
-            if [[ "$file" == *.pkg.tar.zst ]]; then
-              curl -sSL "${file}" -o "${file}" 
-            fi
-          done
       - name: Create Repository
         run: |
           repo-add -n -R ${{ env.REPOSITORY_NAME }}.db.tar.gz *.pkg.tar.zst
