@@ -173,7 +173,7 @@ jobs:
         uses: actions/configure-pages@v5.0.0
       - name: Download Exists Packages
         run: |
-          echo "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\n" >> /etc/pacman.conf
+          echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\n" >> /etc/pacman.conf
           pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
           pacman -Sw --noconfirm $pkgs --cachedir=$PWD
       - name: Download Build Package
