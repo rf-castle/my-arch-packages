@@ -172,8 +172,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5.0.0
       - name: Download Exists Packages
+        # Todo: 署名検証を追加
         run: |
-          echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\n" >> /etc/pacman.conf
+          echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
           pacman -Sy --noconfirm
           pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
           pacman -Sw --noconfirm $pkgs --cachedir=$PWD
