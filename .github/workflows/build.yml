@@ -2,7 +2,12 @@ name: Build Packages
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: { }
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Build only this package (directory name in source/)'
+        required: false
+        default: ''
 env:
   # pacmanのリポジトリURL(github pages)
   REPOSITORY_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
@@ -83,29 +88,39 @@ jobs:
         run: |
           cd source
           packages=()
-          for dir in */ ; do
-            dir=${dir%/}
-            # scriptsや隠しディレクトリは除外
-            if [[ "$dir" == "scripts" || "$dir" == .* ]]; then
-              continue
+          if [ -n "${{ github.event.inputs.package }}" ]; then
+            # 指定パッケージが存在するか確認
+            if [ -d "${{ github.event.inputs.package }}" ] && [ -f "${{ github.event.inputs.package }}/PKGBUILD" ]; then
+              packages+=("${{ github.event.inputs.package }}")
+            else
+              echo "指定されたパッケージが存在しません: ${{ github.event.inputs.package }}"
+              exit 1
             fi
-            # PKGBUILDがなければスキップ
-            if [[ ! -f "$dir/PKGBUILD" ]]; then
-              continue
-            fi
-            # localバージョン取得
-            local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
-            pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
-            remote_ver=""
-            # pacmanからリモートバージョン取得
-            if pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname &>/dev/null; then
-              remote_ver=$(pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname | awk -F': ' '/^Version/ {print $2}')
-            fi
-            # リモートリポジトリに存在しない or バージョンが異なる場合のみ追加
-            if [[ "$local_ver" != "$remote_ver" ]]; then
-              packages+=("$dir")
-            fi
-          done
+          else
+            for dir in */ ; do
+              dir=${dir%/}
+              # scriptsや隠しディレクトリは除外
+              if [[ "$dir" == "scripts" || "$dir" == .* ]]; then
+                continue
+              fi
+              # PKGBUILDがなければスキップ
+              if [[ ! -f "$dir/PKGBUILD" ]]; then
+                continue
+              fi
+              # localバージョン取得
+              local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
+              pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
+              remote_ver=""
+              # pacmanからリモートバージョン取得
+              if pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname &>/dev/null; then
+                remote_ver=$(pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname | awk -F': ' '/^Version/ {print $2}')
+              fi
+              # リモートリポジトリに存在しない or バージョンが異なる場合のみ追加
+              if [[ "$local_ver" != "$remote_ver" ]]; then
+                packages+=("$dir")
+              fi
+            done
+          fi
           if [ ${#packages[@]} -eq 0 ]; then
             packages_json="[]"
           else
