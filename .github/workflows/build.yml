@@ -107,7 +107,11 @@ jobs:
               packages+=("$dir")
             fi
           done
-          packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -cs .)
+          if [ ${#packages[@]} -eq 0 ]; then
+            packages_json="[]"
+          else
+            packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -cs .)
+          fi
           echo "packages=$packages_json" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
