@@ -6,7 +6,7 @@ set -e
 
 # パッケージのアップデート
 pacman -Syu --noconfirm
-pacman -S --noconfirm --needed base-devel git
+pacman -S --noconfirm --needed base-devel git jq
 
 # ビルド用ユーザーの作成
 useradd -m -G wheel -s /bin/bash builder
