@@ -55,6 +55,8 @@ jobs:
           docker run --name extract-paru -d ghcr.io/${{ github.repository }}/myarchlinux:latest
           docker cp extract-paru:/opt/dist/ .
           docker rm -f extract-paru
+          pwd
+          ls
       - name: Upload Paru
         uses: actions/upload-artifact@v4
         with:
