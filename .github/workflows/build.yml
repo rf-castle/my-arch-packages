@@ -119,7 +119,7 @@ jobs:
       - list-package
     container:
       image: ghcr.io/${{ github.repository }}/myarchlinux:latest
-    if: needs.list-package.outputs.packages != '[]'
+    if: ${{ fromJson(needs.list-package.outputs.packages) != '[]' }}
     strategy:
       matrix:
         package: ${{ fromJson(needs.list-package.outputs.packages) }}
