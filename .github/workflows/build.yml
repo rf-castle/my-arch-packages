@@ -1,7 +1,9 @@
 name: Build Packages
 on:
   push: 
-    branches: [ main ]
+    branches:
+      - main
+      - debug/remove_plasma_workspace
   workflow_dispatch: {}
 jobs:
   update-packages:

@@ -1,6 +1,3 @@
 [submodule "source/oci-cli"]
 	path = source/oci-cli
 	url = https://aur.archlinux.org/oci-cli
-[submodule "source/plasma-workspace"]
-	path = source/plasma-workspace
-	url = https://gitlab.archlinux.org/archlinux/packaging/packages/plasma-workspace.git
