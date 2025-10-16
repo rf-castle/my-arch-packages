@@ -17,9 +17,11 @@ cp "$(dirname "$0")/plasma-shutdown.patch" $PACKAGE_PATH
 pushd $PACKAGE_PATH
 
 # source行
-sed -i '/^source=(/ s/)$//; /^source=(/ s/$/ plasma-shutdown.patch)/' PKGBUILD
+# 複数行に渡るため、perlを使って行を追加
+perl -0777 -i -pe '
+  s/(^source=\([\s\S]*?)(\))/\1\n        'plasma-shutdown.patch'\2/m
+' PKGBUILD
 # sha256sums行
-# 複数行に渡るため、awkを使って行を追加
 perl -0777 -i -pe '
   s/(^sha256sums=\([\s\S]*?)(\))/\1\n            '\''15911ec23da41065fe8c96ec62bfabf9c02d97b90f735fa60692dffec80539b5'\''\2/m
 ' PKGBUILD
