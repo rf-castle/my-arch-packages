@@ -1,0 +1,64 @@
+diff --git a/include/i3-atoms_rest.xmacro.h b/include/i3-atoms_rest.xmacro.h
+index fa915fd6..c5623bc0 100644
+--- a/include/i3-atoms_rest.xmacro.h
++++ b/include/i3-atoms_rest.xmacro.h
+@@ -18,6 +18,7 @@ xmacro(I3_SHMLOG_PATH) \
+ xmacro(I3_PID) \
+ xmacro(I3_LOG_STREAM_SOCKET_PATH) \
+ xmacro(I3_FLOATING_WINDOW) \
++xmacro(I3_PICOM_FLAG) \
+ xmacro(_NET_REQUEST_FRAME_EXTENTS) \
+ xmacro(_NET_FRAME_EXTENTS) \
+ xmacro(_MOTIF_WM_HINTS) \
+diff --git a/src/x.c b/src/x.c
+index cdc29876..ac14e526 100644
+--- a/src/x.c
++++ b/src/x.c
+@@ -785,17 +785,37 @@ static void set_hidden_state(Con *con) {
+ 
+     con_state *state = state_for_frame(con->frame.id);
+     bool should_be_hidden = con_is_hidden(con);
+-    if (should_be_hidden == state->is_hidden)
+-        return;
+-
+-    if (should_be_hidden) {
+-        DLOG("setting _NET_WM_STATE_HIDDEN for con = %p\n", con);
+-        xcb_add_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
+-    } else {
+-        DLOG("removing _NET_WM_STATE_HIDDEN for con = %p\n", con);
+-        xcb_remove_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
++    // 自分用メモ
++    // 0: 以下に該当しない
++    // 1: TABBED && STACKEDで、フォーカスされているウィンドウ
++    // 2: TABBED && STACKEDで、フォーカスされていないウィンドウ
++    // 3: (Todo)一番奥のウィンドウ
++    short value = 0;
++    if(should_be_hidden){
++        value = 2;
++    }
++    if(con->parent != NULL){
++        Con* parent = con->parent;
++        if(parent->layout == L_TABBED || parent->layout == L_STACKED){
++            Con* last = TAILQ_LAST(&(parent->focus_head), focus_head);
++            if (last == con){
++                value = 3;
++            }
++            else if(!should_be_hidden){
++                value = 1;
++            }
++        }
+     }
+-
++    xcb_change_property(
++        conn,
++        XCB_PROP_MODE_REPLACE,
++        con->window->id,
++        A_I3_PICOM_FLAG,
++        XCB_ATOM_CARDINAL,
++        8,
++        1,
++        &value
++    );
+     state->is_hidden = should_be_hidden;
+ }
+ 
