@@ -6,9 +6,7 @@ set -e
 
 # あらかじめperlを入れておかないとパスがうまく設定されなさそうなので
 # ここで一度インストールしておく
-if ! pacman -Q perl &>/dev/null; then
-    sudo pacman -S --noconfirm perl
-fi
+sudo pacman -S --noconfirm perl
 
 # patchのコピー
 cp "$(dirname "$0")/i3.patch" $PACKAGE_PATH
