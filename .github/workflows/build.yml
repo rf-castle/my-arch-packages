@@ -91,12 +91,28 @@ jobs:
           cd source
           packages=()
           if [ -n "${{ github.event.inputs.package }}" ]; then
-            # 指定パッケージが存在するか確認
-            if [ -d "${{ github.event.inputs.package }}" ] && [ -f "${{ github.event.inputs.package }}/PKGBUILD" ]; then
-              packages+=("${{ github.event.inputs.package }}")
+            if [ "${{ github.event.inputs.package }}" = "*" ]; then
+              # *が指定された場合はすべてのパッケージを強制的にビルド
+              for dir in */ ; do
+                dir=${dir%/}
+                # scriptsや隠しディレクトリは除外
+                if [[ "$dir" == "scripts" || "$dir" == .* ]]; then
+                  continue
+                fi
+                # PKGBUILDがなければスキップ
+                if [[ ! -f "$dir/PKGBUILD" ]]; then
+                  continue
+                fi
+                packages+=("$dir")
+              done
             else
-              echo "指定されたパッケージが存在しません: ${{ github.event.inputs.package }}"
-              exit 1
+              # 指定パッケージが存在するか確認
+              if [ -d "${{ github.event.inputs.package }}" ] && [ -f "${{ github.event.inputs.package }}/PKGBUILD" ]; then
+                packages+=("${{ github.event.inputs.package }}")
+              else
+                echo "指定されたパッケージが存在しません: ${{ github.event.inputs.package }}"
+                exit 1
+              fi
             fi
           else
             for dir in */ ; do
