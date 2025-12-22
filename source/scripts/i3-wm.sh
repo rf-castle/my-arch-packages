@@ -1,5 +1,5 @@
 #!/bin/bash
-# i3.sh
+# i3-wm.sh
 
 # スクリプトをエラーで停止させる
 set -e
