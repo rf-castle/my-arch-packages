@@ -11,15 +11,16 @@ index fa915fd6..c5623bc0 100644
  xmacro(_NET_FRAME_EXTENTS) \
  xmacro(_MOTIF_WM_HINTS) \
 diff --git a/src/x.c b/src/x.c
-index cdc29876..ac14e526 100644
+index 6c704139..025a2e54 100644
 --- a/src/x.c
 +++ b/src/x.c
-@@ -785,17 +785,37 @@ static void set_hidden_state(Con *con) {
+@@ -815,18 +815,37 @@ static void set_hidden_state(Con *con) {
  
      con_state *state = state_for_frame(con->frame.id);
      bool should_be_hidden = con_is_hidden(con);
--    if (should_be_hidden == state->is_hidden)
+-    if (should_be_hidden == state->is_hidden) {
 -        return;
+-    }
 -
 -    if (should_be_hidden) {
 -        DLOG("setting _NET_WM_STATE_HIDDEN for con = %p\n", con);

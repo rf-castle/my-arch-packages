@@ -17,7 +17,7 @@ perl -0777 -i -pe '
 ' PKGBUILD
 # i3.patchのb2sums行を追加
 perl -i -pe '
-  s/(^b2sums=\(.*?)(\))/\1 \n                    '\''4e48e9cd9d83f269ea023f4e6b5104250498757f0af3d72496cb47a5aa60aeb9f0757751e302580e44daca92f7a9843b6cc66c2c53454fef9a871d1a05437bc3'\''\2/
+  s/(^b2sums=\(.*?)(\))/\1 \n                    '\''350da3cb6baef9d997d38dda0c434eca12c985ca190192cb9b60ae8167d10f92b971c3b024c1f34c9b9bcee78058c252739cbe78ff0ba5c1527891aebf775d14'\''\2/
 ' PKGBUILD
 
 # PKGBUILDのpackage()のcd i3の直後にパッチ適用行を追加
