@@ -178,7 +178,7 @@ jobs:
       - name: Build Package
         run: |
           pushd $PACKAGE_PATH
-          sudo -u builder -- env PKGDEST=$PWD/dist bash -c 'paru -B --noconfirm .'
+          sudo -u builder -- env PKGDEST=$PWD/dist bash -lc 'paru -B --noconfirm .'
           ls -l dist
           popd
       - name: upload package
