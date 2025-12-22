@@ -5,7 +5,7 @@
 set -e
 
 # パッケージのアップデート
-pacman -Syu --noconfirm
+pacman -Syyu --noconfirm
 pacman -S --noconfirm --needed base-devel git jq
 
 # ビルド用ユーザーの作成
