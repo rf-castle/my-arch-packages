@@ -177,6 +177,7 @@ jobs:
           popd
       - name: Build Package
         run: |
+          export PATH="/usr/bin/core_perl:$PATH"
           pushd $PACKAGE_PATH
           sudo -u builder -- env PKGDEST=$PWD/dist paru -B --noconfirm .
           ls -l dist

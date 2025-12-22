@@ -4,10 +4,6 @@
 # スクリプトをエラーで停止させる
 set -e
 
-# あらかじめperlを入れておかないとパスがうまく設定されなさそうなので
-# ここで一度インストールしておく
-sudo pacman -S --noconfirm perl
-
 # patchのコピー
 cp "$(dirname "$0")/i3.patch" $PACKAGE_PATH
 
