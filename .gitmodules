@@ -10,3 +10,6 @@
 [submodule "source/i3-wm"]
 	path = source/i3-wm
 	url = https://gitlab.archlinux.org/archlinux/packaging/packages/i3-wm.git
+[submodule "source/sunshine"]
+	path = source/sunshine
+	url = https://aur.archlinux.org/sunshine.git
