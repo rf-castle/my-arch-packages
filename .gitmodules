@@ -13,3 +13,6 @@
 [submodule "source/sunshine"]
 	path = source/sunshine
 	url = https://aur.archlinux.org/sunshine.git
+[submodule "source/herdr"]
+	path = source/herdr
+	url = https://aur.archlinux.org/herdr
