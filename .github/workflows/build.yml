@@ -13,6 +13,9 @@ env:
   REPOSITORY_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
   # pacmanのリポジトリ名
   REPOSITORY_NAME: "parrot"
+  # pythonのマイナーバージョンに依存するパッケージ(site-packagesのパスがpython-X.Yに紐づく)
+  # pythonが上がったらpkgrelを "<pkgrel>.<minor>" にしてリビルドする
+  PYTHON_PACKAGES: "python-oci oci-cli python-terminaltables3"
 
 jobs:
   update-packages:
@@ -127,6 +130,9 @@ jobs:
               fi
               # localバージョン取得
               local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
+              if [[ " $PYTHON_PACKAGES " == *" $dir "* ]]; then
+                local_ver="${local_ver}.$(python -c 'import sys; print(sys.version_info.minor)')"
+              fi
               pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
               remote_ver=""
               # pacmanからリモートバージョン取得
@@ -175,6 +181,13 @@ jobs:
             bash ./scripts/${{ matrix.package }}.sh
           fi
           popd
+      - name: Append python version to pkgrel
+        run: |
+          if [[ " $PYTHON_PACKAGES " == *" ${{ matrix.package }} "* ]]; then
+            pymin=$(python -c 'import sys; print(sys.version_info.minor)')
+            sed -i -E "s/^pkgrel=([0-9]+)(\.[0-9]+)?\s*$/pkgrel=\1.${pymin}/" $PACKAGE_PATH/PKGBUILD
+            grep '^pkgrel=' $PACKAGE_PATH/PKGBUILD
+          fi
       - name: Build Package
         run: |
           pushd $PACKAGE_PATH

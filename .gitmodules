@@ -16,3 +16,6 @@
 [submodule "source/herdr"]
 	path = source/herdr
 	url = https://aur.archlinux.org/herdr
+[submodule "source/python-oci"]
+	path = source/python-oci
+	url = https://aur.archlinux.org/python-oci.git
