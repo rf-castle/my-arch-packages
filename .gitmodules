@@ -19,3 +19,6 @@
 [submodule "source/python-oci"]
 	path = source/python-oci
 	url = https://aur.archlinux.org/python-oci.git
+[submodule "source/sway-tabs-render-hidden"]
+	path = source/sway-tabs-render-hidden
+	url = https://gitlab.archlinux.org/archlinux/packaging/packages/sway.git

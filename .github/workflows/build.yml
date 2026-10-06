@@ -129,11 +129,12 @@ jobs:
                 continue
               fi
               # localバージョン取得
-              local_ver=$(source "$dir/PKGBUILD"; echo "${pkgver}-${pkgrel}")
+              local_ver=$(source "$dir/PKGBUILD"; echo "${epoch:+$epoch:}${pkgver}-${pkgrel}")
               if [[ " $PYTHON_PACKAGES " == *" $dir "* ]]; then
                 local_ver="${local_ver}.$(python -c 'import sys; print(sys.version_info.minor)')"
               fi
-              pkgname=$(source "$dir/PKGBUILD"; echo "${pkgname}")
+              # ディレクトリ名をパッケージ名とする(scripts/で名前を変えるパッケージがあるため、PKGBUILDからは取らない)
+              pkgname=$dir
               remote_ver=""
               # pacmanからリモートバージョン取得
               if pacman -Si ${{ env.REPOSITORY_NAME }}/$pkgname &>/dev/null; then

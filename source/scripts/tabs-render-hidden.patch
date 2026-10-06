@@ -1,0 +1,162 @@
+diff --git a/include/sway/commands.h b/include/sway/commands.h
+index 389c382..3624464 100644
+--- a/include/sway/commands.h
++++ b/include/sway/commands.h
+@@ -185,6 +185,7 @@ sway_cmd cmd_sticky;
+ sway_cmd cmd_swaybg_command;
+ sway_cmd cmd_swaynag_command;
+ sway_cmd cmd_swap;
++sway_cmd cmd_tabs_render_hidden;
+ sway_cmd cmd_tiling_drag;
+ sway_cmd cmd_tiling_drag_threshold;
+ sway_cmd cmd_title_align;
+diff --git a/include/sway/config.h b/include/sway/config.h
+index 16b822f..8ce9037 100644
+--- a/include/sway/config.h
++++ b/include/sway/config.h
+@@ -548,6 +548,7 @@ struct sway_config {
+ 	enum alignment title_align;
+ 	bool primary_selection;
+ 
++	bool tabs_render_hidden;
+ 	bool tiling_drag;
+ 	int tiling_drag_threshold;
+ 
+diff --git a/sway/commands.c b/sway/commands.c
+index c2c12ee..03d428a 100644
+--- a/sway/commands.c
++++ b/sway/commands.c
+@@ -86,6 +86,7 @@ static const struct cmd_handler handlers[] = {
+ 	{ "show_marks", cmd_show_marks },
+ 	{ "smart_borders", cmd_smart_borders },
+ 	{ "smart_gaps", cmd_smart_gaps },
++	{ "tabs_render_hidden", cmd_tabs_render_hidden },
+ 	{ "tiling_drag", cmd_tiling_drag },
+ 	{ "tiling_drag_threshold", cmd_tiling_drag_threshold },
+ 	{ "title_align", cmd_title_align },
+diff --git a/sway/commands/tabs_render_hidden.c b/sway/commands/tabs_render_hidden.c
+new file mode 100644
+index 0000000..36b630c
+--- /dev/null
++++ b/sway/commands/tabs_render_hidden.c
+@@ -0,0 +1,18 @@
++#include "sway/commands.h"
++#include "sway/config.h"
++#include "sway/tree/arrange.h"
++#include "util.h"
++
++struct cmd_results *cmd_tabs_render_hidden(int argc, char **argv) {
++	struct cmd_results *error = NULL;
++	if ((error = checkarg(argc, "tabs_render_hidden", EXPECTED_EQUAL_TO, 1))) {
++		return error;
++	}
++
++	config->tabs_render_hidden = parse_boolean(argv[0], config->tabs_render_hidden);
++	if (!config->reading) {
++		arrange_root();
++	}
++
++	return cmd_results_new(CMD_SUCCESS, NULL);
++}
+diff --git a/sway/config.c b/sway/config.c
+index d579022..017b79d 100644
+--- a/sway/config.c
++++ b/sway/config.c
+@@ -280,6 +280,7 @@ static void config_defaults(struct sway_config *config) {
+ 	config->reading = false;
+ 	config->show_marks = true;
+ 	config->title_align = ALIGN_LEFT;
++	config->tabs_render_hidden = false;
+ 	config->tiling_drag = true;
+ 	config->tiling_drag_threshold = 9;
+ 	config->primary_selection = true;
+diff --git a/sway/desktop/transaction.c b/sway/desktop/transaction.c
+index 082fe20..623c92f 100644
+--- a/sway/desktop/transaction.c
++++ b/sway/desktop/transaction.c
+@@ -308,13 +308,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+ 
+ 			arrange_title_bar(child, title_offset, -title_bar_height,
+ 				next_title_offset - title_offset, title_bar_height);
+-			wlr_scene_node_set_enabled(&child->border.tree->node, activated);
++			wlr_scene_node_set_enabled(&child->border.tree->node,
++				activated || config->tabs_render_hidden);
+ 			wlr_scene_node_set_enabled(&child->scene_tree->node, true);
+ 			wlr_scene_node_set_position(&child->scene_tree->node, 0, title_bar_height);
+ 			wlr_scene_node_reparent(&child->scene_tree->node, content);
+ 
+ 			int net_height = height - title_bar_height;
+-			if (activated && width > 0 && net_height > 0) {
++			if (width > 0 && net_height > 0 &&
++					(activated || config->tabs_render_hidden)) {
+ 				arrange_container(child, width, net_height, title_bar_height == 0, 0);
+ 			} else {
+ 				disable_container(child);
+@@ -322,6 +324,10 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+ 
+ 			title_offset = next_title_offset;
+ 		}
++		// tabs_render_hidden: 裏のタブも描き、表のタブを一番上に重ねる（透過で後ろが見える）
++		if (config->tabs_render_hidden && active) {
++			wlr_scene_node_raise_to_top(&active->scene_tree->node);
++		}
+ 	} else if (layout == L_STACKED) {
+ 		struct sway_container *first = children->length == 1 ?
+ 			((struct sway_container *)children->items[0]) : NULL;
+@@ -338,13 +344,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+ 			bool activated = child == active;
+ 
+ 			arrange_title_bar(child, 0, y - title_height, width, title_bar_height);
+-			wlr_scene_node_set_enabled(&child->border.tree->node, activated);
++			wlr_scene_node_set_enabled(&child->border.tree->node,
++				activated || config->tabs_render_hidden);
+ 			wlr_scene_node_set_enabled(&child->scene_tree->node, true);
+ 			wlr_scene_node_set_position(&child->scene_tree->node, 0, title_height);
+ 			wlr_scene_node_reparent(&child->scene_tree->node, content);
+ 
+ 			int net_height = height - title_height;
+-			if (activated && width > 0 && net_height > 0) {
++			if (width > 0 && net_height > 0 &&
++					(activated || config->tabs_render_hidden)) {
+ 				arrange_container(child, width, net_height, title_bar_height == 0, 0);
+ 			} else {
+ 				disable_container(child);
+@@ -352,6 +360,9 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+ 
+ 			y += title_bar_height;
+ 		}
++		if (config->tabs_render_hidden && active) {
++			wlr_scene_node_raise_to_top(&active->scene_tree->node);
++		}
+ 	} else if (layout == L_VERT) {
+ 		int off = 0;
+ 		for (int i = 0; i < children->length; i++) {
+diff --git a/sway/meson.build b/sway/meson.build
+index cb03a4d..3418219 100644
+--- a/sway/meson.build
++++ b/sway/meson.build
+@@ -112,6 +112,7 @@ sway_sources = files(
+ 	'commands/swaybg_command.c',
+ 	'commands/swaynag_command.c',
+ 	'commands/swap.c',
++	'commands/tabs_render_hidden.c',
+ 	'commands/tiling_drag.c',
+ 	'commands/tiling_drag_threshold.c',
+ 	'commands/title_align.c',
+diff --git a/sway/sway.5.scd b/sway/sway.5.scd
+index 952d243..b18d0fb 100644
+--- a/sway/sway.5.scd
++++ b/sway/sway.5.scd
+@@ -877,6 +877,12 @@ The default colors are:
+ 	Adjusts the opacity of the window between 0 (completely transparent) and
+ 	1 (completely opaque). If the operation is omitted, _set_ will be used.
+ 
++*tabs_render_hidden* yes|no
++	When enabled, hidden children of tabbed and stacked containers are still
++	rendered underneath the focused child, so a translucent window shows the
++	tab behind it instead of the wallpaper. Hidden children keep receiving
++	frame events, which costs extra rendering. Default is _no_.
++
+ *tiling_drag*  enable|disable|toggle
+ 	Sets whether or not tiling containers can be dragged with the mouse. If
+ 	_enabled_ (default), the _floating_mod_ can be used to drag tiling, as well
