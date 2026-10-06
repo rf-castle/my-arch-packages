@@ -195,6 +195,15 @@ jobs:
           sudo -u builder -- env PKGDEST=$PWD/dist bash -lc 'paru -B --noconfirm .'
           ls -l dist
           popd
+      - name: Replace colon in package file names
+        # upload-artifactはファイル名の「:」(epochの区切り)を受け付けないので置き換える
+        # pacmanはリポジトリDBに記録されたファイル名で取得するので、名前を変えても問題ない
+        run: |
+          pushd $PACKAGE_PATH/dist
+          for f in *:*; do
+            [ -e "$f" ] && mv -v "$f" "${f//:/_}"
+          done
+          popd
       - name: upload package
         uses: actions/upload-artifact@v4
         with:
