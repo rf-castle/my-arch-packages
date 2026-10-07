@@ -53,8 +53,6 @@ jobs:
           context: ./source
           push: true
           tags: "ghcr.io/${{ github.repository }}/myarchlinux:latest"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           pull: true
       - name: Extract Paru From Image
         run: |
