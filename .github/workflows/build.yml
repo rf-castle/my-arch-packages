@@ -19,6 +19,8 @@ env:
   # scripts/のパッチだけを変えたパッケージ(公式のバージョンは変わらない)
   # "<ディレクトリ名>:<番号>" で、pkgrelを "<pkgrel>.<番号>" にする。パッチを変えたら番号を上げる
   PATCH_REVISIONS: "sway-tabs-render-hidden:1"
+  # source/から消したパッケージ。deployで既存パッケージを取り直すときに除外し、リポジトリから消す
+  REMOVED_PACKAGES: "plasma-workspace plasma-workspace-debug plasma-x11-session i3-wm i3-wm-debug"
 
 jobs:
   update-packages:
@@ -244,7 +246,7 @@ jobs:
         run: |
           echo -e "\n[${{ env.REPOSITORY_NAME }}]\nServer = ${{ env.REPOSITORY_URL }}/\nSigLevel = Optional TrustAll" >> /etc/pacman.conf
           pacman -Sy --noconfirm
-          pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk '{print $2}')
+          pkgs=$(pacman -Sl ${{ env.REPOSITORY_NAME }} | awk -v removed=" $REMOVED_PACKAGES " 'index(removed, " " $2 " ") == 0 {print $2}')
           pacman -Swdd --noconfirm --nodeps $pkgs --cachedir=$PWD
       - name: Download Build Package
         uses: actions/download-artifact@v4

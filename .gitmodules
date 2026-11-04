@@ -1,15 +1,9 @@
 [submodule "source/oci-cli"]
 	path = source/oci-cli
 	url = https://aur.archlinux.org/oci-cli
-[submodule "source/plasma-workspace"]
-	path = source/plasma-workspace
-	url = https://gitlab.archlinux.org/archlinux/packaging/packages/plasma-workspace.git
 [submodule "source/python-terminaltables3"]
 	path = source/python-terminaltables3
 	url = https://aur.archlinux.org/python-terminaltables3.git
-[submodule "source/i3-wm"]
-	path = source/i3-wm
-	url = https://gitlab.archlinux.org/archlinux/packaging/packages/i3-wm.git
 [submodule "source/sunshine"]
 	path = source/sunshine
 	url = https://aur.archlinux.org/sunshine.git
