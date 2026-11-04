@@ -21,7 +21,7 @@ check() {
 # パッケージ名を変え、元の名前は_pkgnameに残す
 sed -i 's/^pkgname=sway$/pkgname=sway-tabs-render-hidden\n_pkgname=sway/' PKGBUILD
 check '_pkgname=sway'
-sed -i "s/^pkgdesc=.*/pkgdesc='Tiling Wayland compositor (with tabs_render_hidden: draw hidden tabs under translucent windows)'/" PKGBUILD
+sed -i "s/^pkgdesc=.*/pkgdesc='Tiling Wayland compositor (with tabs_render_hidden and tabs_opacity: draw hidden tabs under translucent windows with per-tab opacity)'/" PKGBUILD
 check 'tabs_render_hidden'
 
 # 公式のswayと入れ替えられるようにする
@@ -39,9 +39,9 @@ perl -0777 -i -pe '
 ' PKGBUILD
 check '"tabs-render-hidden.patch"'
 perl -0777 -i -pe '
-  s/(^sha512sums=\([\s\S]*?)(\))/\1\n            '\''485b09f0b9f2032efa67505e6773c9242b790ef7481c28e732a0fba6298158dc5973c3f44406584b571be13162fc4bc24d3f3f4f6616380c8736cd5df23864f9'\''\2/m
+  s/(^sha512sums=\([\s\S]*?)(\))/\1\n            '\''0412dd0f61e4d121349103c6469e1314075f26a906e8bdfbf4974c4090d7906cb9434e8db308bb9304dc5e9b13a6bff181096cafd3b365effe61583b84dd7909'\''\2/m
 ' PKGBUILD
-check '485b09f0b9f2032e'
+check '0412dd0f61e4d121'
 
 # ソースディレクトリの参照を$_pkgnameにする(ライセンスのインストール先は$pkgnameのまま)
 sed -i -e 's|cd "\$pkgname"|cd "$_pkgname"|' \

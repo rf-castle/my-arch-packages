@@ -1,39 +1,190 @@
 diff --git a/include/sway/commands.h b/include/sway/commands.h
-index 389c382..3624464 100644
+index 389c382..8ba32ad 100644
 --- a/include/sway/commands.h
 +++ b/include/sway/commands.h
-@@ -185,6 +185,7 @@ sway_cmd cmd_sticky;
+@@ -185,6 +185,9 @@ sway_cmd cmd_sticky;
  sway_cmd cmd_swaybg_command;
  sway_cmd cmd_swaynag_command;
  sway_cmd cmd_swap;
++sway_cmd cmd_tab_opacity;
++sway_cmd cmd_tabs_opacity;
 +sway_cmd cmd_tabs_render_hidden;
  sway_cmd cmd_tiling_drag;
  sway_cmd cmd_tiling_drag_threshold;
  sway_cmd cmd_title_align;
 diff --git a/include/sway/config.h b/include/sway/config.h
-index 16b822f..8ce9037 100644
+index 16b822f..acb0bc3 100644
 --- a/include/sway/config.h
 +++ b/include/sway/config.h
-@@ -548,6 +548,7 @@ struct sway_config {
+@@ -548,6 +548,8 @@ struct sway_config {
  	enum alignment title_align;
  	bool primary_selection;
  
 +	bool tabs_render_hidden;
++	float tabs_opacity[3]; // 表、裏、一番奥（enum sway_tab_role の順）
  	bool tiling_drag;
  	int tiling_drag_threshold;
  
+diff --git a/include/sway/tree/container.h b/include/sway/tree/container.h
+index d878054..971b658 100644
+--- a/include/sway/tree/container.h
++++ b/include/sway/tree/container.h
+@@ -65,6 +65,16 @@ struct sway_container_state {
+ 	double content_width, content_height;
+ };
+ 
++// tabbed/stacked の直下にある view の役割（tabs_opacity で透過率が決まる）
++enum sway_tab_role {
++	TAB_ROLE_NONE = 0, // tabbed/stacked の直下ではない
++	TAB_ROLE_FRONT,    // 表のタブ
++	TAB_ROLE_HIDDEN,   // 裏のタブ
++	TAB_ROLE_BOTTOM,   // フォーカス順で一番奥のタブ
++};
++
++#define TAB_ROLE_COUNT 3 // NONE を除いた役割の数（tab_opacity の配列の大きさ）
++
+ struct sway_container {
+ 	struct sway_node node;
+ 	struct sway_view *view;
+@@ -139,6 +149,10 @@ struct sway_container {
+ 
+ 	float alpha;
+ 
++	// tabs_opacity 用。tab_opacity は役割ごとの上書き値で、負なら全体の設定を使う
++	enum sway_tab_role tab_role;
++	float tab_opacity[TAB_ROLE_COUNT];
++
+ 	list_t *marks; // char *
+ 
+ 	struct {
+@@ -359,6 +373,12 @@ void container_arrange_title_bar(struct sway_container *con);
+ 
+ void container_update(struct sway_container *con);
+ 
++/**
++ * tabs_opacity による、view の中身にだけ掛ける透過率の係数。
++ * tabbed/stacked の直下でない、または全画面なら 1。
++ */
++float container_tab_alpha(struct sway_container *con);
++
+ void container_update_itself_and_parents(struct sway_container *con);
+ 
+ #endif
 diff --git a/sway/commands.c b/sway/commands.c
-index c2c12ee..03d428a 100644
+index c2c12ee..4fd75db 100644
 --- a/sway/commands.c
 +++ b/sway/commands.c
-@@ -86,6 +86,7 @@ static const struct cmd_handler handlers[] = {
+@@ -86,6 +86,8 @@ static const struct cmd_handler handlers[] = {
  	{ "show_marks", cmd_show_marks },
  	{ "smart_borders", cmd_smart_borders },
  	{ "smart_gaps", cmd_smart_gaps },
++	{ "tabs_opacity", cmd_tabs_opacity },
 +	{ "tabs_render_hidden", cmd_tabs_render_hidden },
  	{ "tiling_drag", cmd_tiling_drag },
  	{ "tiling_drag_threshold", cmd_tiling_drag_threshold },
  	{ "title_align", cmd_title_align },
+@@ -137,6 +139,7 @@ static const struct cmd_handler command_handlers[] = {
+ 	{ "splitv", cmd_splitv },
+ 	{ "sticky", cmd_sticky },
+ 	{ "swap", cmd_swap },
++	{ "tab_opacity", cmd_tab_opacity },
+ 	{ "title_format", cmd_title_format },
+ 	{ "unmark", cmd_unmark },
+ 	{ "urgent", cmd_urgent },
+diff --git a/sway/commands/tab_opacity.c b/sway/commands/tab_opacity.c
+new file mode 100644
+index 0000000..f05e3ea
+--- /dev/null
++++ b/sway/commands/tab_opacity.c
+@@ -0,0 +1,51 @@
++#include <stdlib.h>
++#include <strings.h>
++#include "sway/commands.h"
++#include "sway/output.h"
++#include "sway/tree/container.h"
++
++// tab_opacity <front|hidden|bottom|all> <0..1>|reset
++struct cmd_results *cmd_tab_opacity(int argc, char **argv) {
++	struct cmd_results *error = NULL;
++	if ((error = checkarg(argc, "tab_opacity", EXPECTED_EQUAL_TO, 2))) {
++		return error;
++	}
++
++	struct sway_container *con = config->handler_context.container;
++	if (con == NULL) {
++		return cmd_results_new(CMD_FAILURE, "No current container");
++	}
++
++	int first, last;
++	if (!strcasecmp(argv[0], "front")) {
++		first = last = TAB_ROLE_FRONT - 1;
++	} else if (!strcasecmp(argv[0], "hidden")) {
++		first = last = TAB_ROLE_HIDDEN - 1;
++	} else if (!strcasecmp(argv[0], "bottom")) {
++		first = last = TAB_ROLE_BOTTOM - 1;
++	} else if (!strcasecmp(argv[0], "all")) {
++		first = 0;
++		last = TAB_ROLE_COUNT - 1;
++	} else {
++		return cmd_results_new(CMD_INVALID,
++				"Expected: tab_opacity <front|hidden|bottom|all> <0..1>|reset");
++	}
++
++	float val;
++	if (!strcasecmp(argv[1], "reset")) {
++		val = -1.0f;
++	} else {
++		char *err;
++		val = strtof(argv[1], &err);
++		if (*err || val < 0 || val > 1) {
++			return cmd_results_new(CMD_INVALID, "tab_opacity value must be 0..1 or reset");
++		}
++	}
++
++	for (int i = first; i <= last; ++i) {
++		con->tab_opacity[i] = val;
++	}
++	output_configure_scene(NULL, &con->scene_tree->node, 1.0f);
++
++	return cmd_results_new(CMD_SUCCESS, NULL);
++}
+diff --git a/sway/commands/tabs_opacity.c b/sway/commands/tabs_opacity.c
+new file mode 100644
+index 0000000..4d3a854
+--- /dev/null
++++ b/sway/commands/tabs_opacity.c
+@@ -0,0 +1,31 @@
++#include <stdlib.h>
++#include "sway/commands.h"
++#include "sway/config.h"
++#include "sway/tree/arrange.h"
++
++// tabs_opacity <front> <hidden> <bottom>
++struct cmd_results *cmd_tabs_opacity(int argc, char **argv) {
++	struct cmd_results *error = NULL;
++	if ((error = checkarg(argc, "tabs_opacity", EXPECTED_EQUAL_TO, 3))) {
++		return error;
++	}
++
++	float values[3];
++	for (int i = 0; i < 3; ++i) {
++		char *err;
++		values[i] = strtof(argv[i], &err);
++		if (*err || values[i] < 0 || values[i] > 1) {
++			return cmd_results_new(CMD_INVALID,
++					"Expected: tabs_opacity <front> <hidden> <bottom> (each 0..1)");
++		}
++	}
++	for (int i = 0; i < 3; ++i) {
++		config->tabs_opacity[i] = values[i];
++	}
++
++	if (!config->reading) {
++		arrange_root();
++	}
++
++	return cmd_results_new(CMD_SUCCESS, NULL);
++}
 diff --git a/sway/commands/tabs_render_hidden.c b/sway/commands/tabs_render_hidden.c
 new file mode 100644
 index 0000000..36b630c
@@ -59,22 +210,135 @@ index 0000000..36b630c
 +	return cmd_results_new(CMD_SUCCESS, NULL);
 +}
 diff --git a/sway/config.c b/sway/config.c
-index d579022..017b79d 100644
+index d579022..05de499 100644
 --- a/sway/config.c
 +++ b/sway/config.c
-@@ -280,6 +280,7 @@ static void config_defaults(struct sway_config *config) {
+@@ -280,6 +280,10 @@ static void config_defaults(struct sway_config *config) {
  	config->reading = false;
  	config->show_marks = true;
  	config->title_align = ALIGN_LEFT;
 +	config->tabs_render_hidden = false;
++	for (int i = 0; i < 3; ++i) {
++		config->tabs_opacity[i] = 1.0f;
++	}
  	config->tiling_drag = true;
  	config->tiling_drag_threshold = 9;
  	config->primary_selection = true;
+diff --git a/sway/desktop/output.c b/sway/desktop/output.c
+index 12dc9cc..d707474 100644
+--- a/sway/desktop/output.c
++++ b/sway/desktop/output.c
+@@ -221,6 +221,13 @@ void output_configure_scene(struct sway_output *output,
+ 		opacity = con->alpha;
+ 	}
+ 
++	// tabs_opacity: タイトルバーや枠ではなく view の中身にだけ掛ける
++	struct sway_view *view =
++		scene_descriptor_try_get(node, SWAY_SCENE_DESC_VIEW);
++	if (view && view->container) {
++		opacity *= container_tab_alpha(view->container);
++	}
++
+ 	if (node->type == WLR_SCENE_NODE_BUFFER) {
+ 		struct wlr_scene_buffer *buffer = wlr_scene_buffer_from_node(node);
+ 		struct wlr_scene_surface *surface = wlr_scene_surface_try_from_buffer(buffer);
 diff --git a/sway/desktop/transaction.c b/sway/desktop/transaction.c
-index 082fe20..623c92f 100644
+index 082fe20..6874ada 100644
 --- a/sway/desktop/transaction.c
 +++ b/sway/desktop/transaction.c
-@@ -308,13 +308,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+@@ -9,6 +9,7 @@
+ #include "sway/desktop/transaction.h"
+ #include "sway/input/cursor.h"
+ #include "sway/input/input-manager.h"
++#include "sway/input/seat.h"
+ #include "sway/output.h"
+ #include "sway/server.h"
+ #include "sway/tree/container.h"
+@@ -286,6 +287,83 @@ static void disable_container(struct sway_container *con) {
+ static void arrange_container(struct sway_container *con,
+ 		int width, int height, bool title_bar, int gaps);
+ 
++static void set_tab_role(struct sway_container *con, enum sway_tab_role role) {
++	if (con->tab_role == role) {
++		return;
++	}
++	con->tab_role = role;
++	output_configure_scene(NULL, &con->scene_tree->node, 1.0f);
++}
++
++/**
++ * tabbed/stacked の子に役割（表・裏・一番奥）を付け、tabs_render_hidden が
++ * 有効ならフォーカス順に重ねる（一番奥が最背面、表が最前面）。
++ */
++static void arrange_tab_roles(list_t *children, struct sway_container *active) {
++	int n = children->length;
++	if (n == 0) {
++		return;
++	}
++	struct sway_container **order = calloc(n, sizeof(*order));
++	if (!order) {
++		return;
++	}
++
++	// フォーカス順（新しい順）。ipc の "focus" 配列と同じ取り方
++	int count = 0;
++	struct sway_seat *seat = input_manager_current_seat();
++	struct sway_seat_node *current;
++	wl_list_for_each(current, &seat->focus_stack, link) {
++		if (count == n) {
++			break;
++		}
++		struct sway_node *node = current->node;
++		if (node->type == N_CONTAINER &&
++				list_find(children, node->sway_container) != -1) {
++			order[count++] = node->sway_container;
++		}
++	}
++	// focus_stack に無い子は並び順で後ろに足す（通常は起きない）
++	for (int i = 0; i < n && count < n; i++) {
++		struct sway_container *child = children->items[i];
++		bool found = false;
++		for (int j = 0; j < count; j++) {
++			if (order[j] == child) {
++				found = true;
++				break;
++			}
++		}
++		if (!found) {
++			order[count++] = child;
++		}
++	}
++
++	for (int i = 0; i < n; i++) {
++		struct sway_container *child = order[i];
++		enum sway_tab_role role;
++		if (!child->view) {
++			role = TAB_ROLE_NONE;
++		} else if (i == n - 1) {
++			role = TAB_ROLE_BOTTOM;
++		} else if (child == active) {
++			role = TAB_ROLE_FRONT;
++		} else {
++			role = TAB_ROLE_HIDDEN;
++		}
++		set_tab_role(child, role);
++	}
++
++	if (config->tabs_render_hidden) {
++		for (int i = n - 1; i >= 0; i--) {
++			wlr_scene_node_raise_to_top(&order[i]->scene_tree->node);
++		}
++		if (active) {
++			wlr_scene_node_raise_to_top(&active->scene_tree->node);
++		}
++	}
++	free(order);
++}
++
+ static void arrange_children(enum sway_container_layout layout, list_t *children,
+ 		struct sway_container *active, struct wlr_scene_tree *content,
+ 		int width, int height, int gaps) {
+@@ -308,13 +386,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
  
  			arrange_title_bar(child, title_offset, -title_bar_height,
  				next_title_offset - title_offset, title_bar_height);
@@ -92,18 +356,16 @@ index 082fe20..623c92f 100644
  				arrange_container(child, width, net_height, title_bar_height == 0, 0);
  			} else {
  				disable_container(child);
-@@ -322,6 +324,10 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+@@ -322,6 +402,8 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
  
  			title_offset = next_title_offset;
  		}
-+		// tabs_render_hidden: 裏のタブも描き、表のタブを一番上に重ねる（透過で後ろが見える）
-+		if (config->tabs_render_hidden && active) {
-+			wlr_scene_node_raise_to_top(&active->scene_tree->node);
-+		}
++		// tabs_render_hidden: 裏のタブも描き、フォーカス順に重ねる（透過で後ろが見える）
++		arrange_tab_roles(children, active);
  	} else if (layout == L_STACKED) {
  		struct sway_container *first = children->length == 1 ?
  			((struct sway_container *)children->items[0]) : NULL;
-@@ -338,13 +344,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+@@ -338,13 +420,15 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
  			bool activated = child == active;
  
  			arrange_title_bar(child, 0, y - title_height, width, title_bar_height);
@@ -121,36 +383,113 @@ index 082fe20..623c92f 100644
  				arrange_container(child, width, net_height, title_bar_height == 0, 0);
  			} else {
  				disable_container(child);
-@@ -352,6 +360,9 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+@@ -352,11 +436,13 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
  
  			y += title_bar_height;
  		}
-+		if (config->tabs_render_hidden && active) {
-+			wlr_scene_node_raise_to_top(&active->scene_tree->node);
-+		}
++		arrange_tab_roles(children, active);
  	} else if (layout == L_VERT) {
  		int off = 0;
  		for (int i = 0; i < children->length; i++) {
+ 			struct sway_container *child = children->items[i];
+ 			int cheight = child->current.height;
++			set_tab_role(child, TAB_ROLE_NONE);
+ 
+ 			wlr_scene_node_set_enabled(&child->border.tree->node, true);
+ 			wlr_scene_node_set_position(&child->scene_tree->node, 0, off);
+@@ -373,6 +459,7 @@ static void arrange_children(enum sway_container_layout layout, list_t *children
+ 		for (int i = 0; i < children->length; i++) {
+ 			struct sway_container *child = children->items[i];
+ 			int cwidth = child->current.width;
++			set_tab_role(child, TAB_ROLE_NONE);
+ 
+ 			wlr_scene_node_set_enabled(&child->border.tree->node, true);
+ 			wlr_scene_node_set_position(&child->scene_tree->node, off, 0);
+@@ -517,6 +604,7 @@ static void arrange_workspace_floating(struct sway_workspace *ws) {
+ 	for (int i = 0; i < ws->current.floating->length; i++) {
+ 		struct sway_container *floater = ws->current.floating->items[i];
+ 		struct wlr_scene_tree *layer = root->layers.floating;
++		set_tab_role(floater, TAB_ROLE_NONE);
+ 
+ 		if (floater->current.fullscreen_mode != FULLSCREEN_NONE) {
+ 			continue;
+diff --git a/sway/ipc-json.c b/sway/ipc-json.c
+index 3b69ad3..9950803 100644
+--- a/sway/ipc-json.c
++++ b/sway/ipc-json.c
+@@ -708,6 +708,20 @@ static void ipc_json_describe_view(struct sway_container *c, json_object *object
+ #endif
+ }
+ 
++static const char *ipc_json_tab_role_description(enum sway_tab_role role) {
++	switch (role) {
++	case TAB_ROLE_NONE:
++		return "none";
++	case TAB_ROLE_FRONT:
++		return "front";
++	case TAB_ROLE_HIDDEN:
++		return "hidden";
++	case TAB_ROLE_BOTTOM:
++		return "bottom";
++	}
++	return "none";
++}
++
+ static void ipc_json_describe_container(struct sway_container *c, json_object *object) {
+ 	json_object_object_add(object, "name",
+ 			c->title ? json_object_new_string(c->title) : NULL);
+@@ -721,6 +735,9 @@ static void ipc_json_describe_container(struct sway_container *c, json_object *o
+ 			json_object_new_string(
+ 				ipc_json_layout_description(c->pending.layout)));
+ 
++	json_object_object_add(object, "tab_role",
++			json_object_new_string(ipc_json_tab_role_description(c->tab_role)));
++
+ 	json_object_object_add(object, "orientation",
+ 			json_object_new_string(
+ 				ipc_json_orientation_description(c->pending.layout)));
 diff --git a/sway/meson.build b/sway/meson.build
-index cb03a4d..3418219 100644
+index cb03a4d..3f4c077 100644
 --- a/sway/meson.build
 +++ b/sway/meson.build
-@@ -112,6 +112,7 @@ sway_sources = files(
+@@ -112,6 +112,9 @@ sway_sources = files(
  	'commands/swaybg_command.c',
  	'commands/swaynag_command.c',
  	'commands/swap.c',
++	'commands/tab_opacity.c',
++	'commands/tabs_opacity.c',
 +	'commands/tabs_render_hidden.c',
  	'commands/tiling_drag.c',
  	'commands/tiling_drag_threshold.c',
  	'commands/title_align.c',
 diff --git a/sway/sway.5.scd b/sway/sway.5.scd
-index 952d243..b18d0fb 100644
+index 952d243..a80ae9e 100644
 --- a/sway/sway.5.scd
 +++ b/sway/sway.5.scd
-@@ -877,6 +877,12 @@ The default colors are:
+@@ -375,6 +375,10 @@ set|plus|minus|toggle <amount>
+ 	becomes fullscreen on the same workspace as the first container. In either
+ 	of those cases, the second container will gain focus.
+ 
++*tab_opacity* front|hidden|bottom|all <value>|reset
++	Overrides *tabs_opacity* for the selected container, typically used with
++	*for_window* criteria. _reset_ goes back to the global value.
++
+ *title_format* <format>
+ 	Sets the format of window titles. The following placeholders may be used:
+ 
+@@ -877,6 +881,21 @@ The default colors are:
  	Adjusts the opacity of the window between 0 (completely transparent) and
  	1 (completely opaque). If the operation is omitted, _set_ will be used.
  
++*tabs_opacity* <front> <hidden> <bottom>
++	Sets the opacity (0 to 1) of window contents in tabbed and stacked
++	containers by their focus order: the focused child (_front_), the other
++	children (_hidden_), and the least recently focused child (_bottom_, which
++	is also used when there is only one child). The value is multiplied with
++	*opacity*; title bars and borders are not affected, and fullscreen windows
++	are always opaque. Useful together with *tabs_render_hidden*, which also
++	stacks the children in focus order. Default is _1 1 1_.
++
 +*tabs_render_hidden* yes|no
 +	When enabled, hidden children of tabbed and stacked containers are still
 +	rendered underneath the focused child, so a translucent window shows the
@@ -160,3 +499,37 @@ index 952d243..b18d0fb 100644
  *tiling_drag*  enable|disable|toggle
  	Sets whether or not tiling containers can be dragged with the mouse. If
  	_enabled_ (default), the _floating_mod_ can be used to drag tiling, as well
+diff --git a/sway/tree/container.c b/sway/tree/container.c
+index 6880841..c9ea59d 100644
+--- a/sway/tree/container.c
++++ b/sway/tree/container.c
+@@ -112,6 +112,10 @@ struct sway_container *container_create(struct sway_view *view) {
+ 	c->pending.layout = L_NONE;
+ 	c->view = view;
+ 	c->alpha = 1.0f;
++	c->tab_role = TAB_ROLE_NONE;
++	for (int i = 0; i < TAB_ROLE_COUNT; ++i) {
++		c->tab_opacity[i] = -1.0f;
++	}
+ 	c->marks = create_list();
+ 
+ 	wl_signal_init(&c->events.destroy);
+@@ -197,6 +201,18 @@ static void scene_rect_set_color(struct wlr_scene_rect *rect,
+ 	wlr_scene_rect_set_color(rect, premultiplied);
+ }
+ 
++float container_tab_alpha(struct sway_container *con) {
++	if (con->tab_role == TAB_ROLE_NONE ||
++			con->current.fullscreen_mode != FULLSCREEN_NONE) {
++		return 1.0f;
++	}
++	int i = con->tab_role - 1;
++	if (con->tab_opacity[i] >= 0) {
++		return con->tab_opacity[i];
++	}
++	return config->tabs_opacity[i];
++}
++
+ void container_update(struct sway_container *con) {
+ 	struct border_colors *colors = container_get_current_colors(con);
+ 	list_t *siblings = NULL;

@@ -16,6 +16,9 @@ env:
   # pythonのマイナーバージョンに依存するパッケージ(site-packagesのパスがpython-X.Yに紐づく)
   # pythonが上がったらpkgrelを "<pkgrel>.<minor>" にしてリビルドする
   PYTHON_PACKAGES: "python-oci oci-cli python-terminaltables3"
+  # scripts/のパッチだけを変えたパッケージ(公式のバージョンは変わらない)
+  # "<ディレクトリ名>:<番号>" で、pkgrelを "<pkgrel>.<番号>" にする。パッチを変えたら番号を上げる
+  PATCH_REVISIONS: "sway-tabs-render-hidden:1"
 
 jobs:
   update-packages:
@@ -131,6 +134,10 @@ jobs:
               if [[ " $PYTHON_PACKAGES " == *" $dir "* ]]; then
                 local_ver="${local_ver}.$(python -c 'import sys; print(sys.version_info.minor)')"
               fi
+              patch_rev=$(tr ' ' '\n' <<< "$PATCH_REVISIONS" | awk -F: -v p="$dir" '$1 == p {print $2}')
+              if [[ -n "$patch_rev" ]]; then
+                local_ver="${local_ver}.${patch_rev}"
+              fi
               # ディレクトリ名をパッケージ名とする(scripts/で名前を変えるパッケージがあるため、PKGBUILDからは取らない)
               pkgname=$dir
               remote_ver=""
@@ -185,6 +192,13 @@ jobs:
           if [[ " $PYTHON_PACKAGES " == *" ${{ matrix.package }} "* ]]; then
             pymin=$(python -c 'import sys; print(sys.version_info.minor)')
             sed -i -E "s/^pkgrel=([0-9]+)(\.[0-9]+)?\s*$/pkgrel=\1.${pymin}/" $PACKAGE_PATH/PKGBUILD
+            grep '^pkgrel=' $PACKAGE_PATH/PKGBUILD
+          fi
+      - name: Append patch revision to pkgrel
+        run: |
+          patch_rev=$(tr ' ' '\n' <<< "$PATCH_REVISIONS" | awk -F: -v p="${{ matrix.package }}" '$1 == p {print $2}')
+          if [[ -n "$patch_rev" ]]; then
+            sed -i -E "s/^pkgrel=([0-9]+)(\.[0-9]+)?\s*$/pkgrel=\1.${patch_rev}/" $PACKAGE_PATH/PKGBUILD
             grep '^pkgrel=' $PACKAGE_PATH/PKGBUILD
           fi
       - name: Build Package
